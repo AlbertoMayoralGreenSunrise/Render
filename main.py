@@ -36,3 +36,11 @@ async def ringover_webhook(payload: RingoverPayload):
         return process_ringover_call(payload)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/wattwin-webhook")
+async def wattwin_webhook(payload: WattwinPayload):
+    try:
+        return process_wattwin_opportunity(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
