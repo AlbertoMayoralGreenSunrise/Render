@@ -18,10 +18,18 @@ RINGOVER_BASE = "https://public-api.ringover.com/v2"
 # -----------------------------
 # Modelo para recibir webhook
 # -----------------------------
-class RingoverPayload(BaseModel):
-    event: str
+class RingoverData(BaseModel):
     call_id: str
+    channel_id: str
     summary: str
+    ringover_call_path: str
+
+class RingoverPayload(BaseModel):
+    resource: str
+    event: str
+    timestamp: int
+    data: RingoverData
+    attempt: int
 
 # -----------------------------
 # Endpoint raíz
@@ -40,7 +48,7 @@ async def ringover_webhook(payload: RingoverPayload):
             return {"status": "evento no manejado", "event": payload.event}
 
         # Obtener datos de la llamada
-        call_data = get_call(payload.call_id, payload.summary)
+        call_data = get_call(payload.data.call_id, payload.data.summary)
         from_number = call_data["from_number"]
         to_number = call_data["to_number"]
         summary_completed = call_data["summary_completed"]
