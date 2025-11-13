@@ -1,7 +1,39 @@
+def process_ringover_call(payload):
+    if payload.event != "summary_available":
+        return {"status": "evento no manejado", "event": payload.event}
 
+    # Obtener datos de la llamada
+    call_data = get_call(payload.data.call_id, payload.data.summary)
+    from_number = call_data["from_number"]
+    to_number = call_data["to_number"]
+    summary_completed = call_data["summary_completed"]
 
+    # Buscar cliente
+    from_client_id = get_client(from_number)
+    to_client_id = get_client(to_number)
 
+    client_id = None
+    tipo_llamada = ""
+    if from_client_id:
+        client_id = from_client_id
+        tipo_llamada = "📥 *Llamada entrante*"
+    elif to_client_id:
+        client_id = to_client_id
+        tipo_llamada = "📤 *Llamada saliente*"
 
+    if not client_id:
+        return {"status": "❌ No se encontró cliente asociado a esta llamada."}
+
+    # Buscar instancia de proceso
+    process_instance_id = get_process_instance(client_id)
+
+    # Añadir tipo de llamada al resumen
+    summary_completed = f"{summary_completed}\n\n{tipo_llamada}"
+
+    # Crear nota en Wattwin
+    post_note(process_instance_id, summary_completed)
+
+    return {"status": "✅ Nota creada correctamente"}
 
 # -----------------------------
 # Funciones auxiliares
