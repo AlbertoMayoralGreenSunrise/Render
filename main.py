@@ -79,8 +79,7 @@ async def ringover_webhook(payload: RingoverPayload):
 # Funciones auxiliares
 # -----------------------------
 def get_call(call_id, base_summary):
-    url = f"{RINGOVER_BASE}/calls/{call_id}"
-    res = requests.get(url, headers={"Authorization": RINGOVER_API_KEY})
+    res = requests.get(f"{RINGOVER_BASE}/calls/{call_id}", headers={"Authorization": RINGOVER_API_KEY})
     if res.status_code != 200:
         return {
             "from_number": None,
@@ -88,18 +87,14 @@ def get_call(call_id, base_summary):
             "summary_completed": f"⚠️ Error al obtener llamada {call_id}. Código HTTP: {res.status_code}"
         }
 
-    data = res.json().get("data") or res.json().get("list", [{}])[0]
-    if not data:
-        return {
-            "from_number": None,
-            "to_number": None,
-            "summary_completed": f"⚠️ No se encontró la llamada con ID: {call_id}"
-        }
+    json_data = res.json()
+    data_list = json_data.get("data") or json_data.get("list", [])
+    call_data = data_list[0] if data_list else {}
 
-    from_number = data.get("from_number", "Desconocido")
-    to_number = data.get("to_number", "Desconocido")
-    fecha = data.get("start_time", "Sin fecha")
-    duracion = f"{data.get('total_duration', 'Sin duración')} seg"
+    from_number = call_data.get("from_number", "Desconocido")
+    to_number = call_data.get("to_number", "Desconocido")
+    fecha = call_data.get("start_time", "Sin fecha")
+    duracion = f"{call_data.get('total_duration', 'Sin duración')} seg"
 
     summary_completed = f"""
 📞 *Resumen de llamada*
@@ -122,8 +117,10 @@ def search_number(num):
                         json=payload)
     if res.status_code != 200:
         return None
-    data = res.json()
-    return data.get("data", {}).get("companies", [{}])[0].get("id")
+    companies = res.json().get("data", {}).get("companies", [])
+    if companies:
+        return companies[0].get("id")
+    return None
 
 def get_client(phone_number):
     if not phone_number:
@@ -150,8 +147,10 @@ def get_process_instance(client_id):
     res = requests.post(f"{WATTWIN_BASE}/ProcessInstances/search",
                         headers={"x-api-key": WATTWIN_API_KEY, "Content-Type": "application/json"},
                         json=payload)
-    data = res.json()
-    return data.get("data", {}).get("processInstances", [{}])[0].get("id")
+    instances = res.json().get("data", {}).get("processInstances", [])
+    if instances:
+        return instances[0].get("id")
+    return None
 
 def post_note(process_instance_id, text):
     payload = {
