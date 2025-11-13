@@ -1,3 +1,8 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import os
+import requests
+
 app = FastAPI()
 
 WATTWIN_API_KEY = os.getenv("WATTWIN_API_KEY")
