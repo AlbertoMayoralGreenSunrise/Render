@@ -1,3 +1,8 @@
+# ringover.py
+import requests
+import os
+from main import WATTWIN_API_KEY, WATTWIN_BASE, RINGOVER_API_KEY, RINGOVER_BASE
+
 def process_ringover_call(payload):
     if payload.event != "summary_available":
         return {"status": "evento no manejado", "event": payload.event}
