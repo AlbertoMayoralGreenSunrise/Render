@@ -118,8 +118,13 @@ for idx, line in enumerate(products_lines, start=1):
     else:
         log(f"[WARN] categoryId {category_id} no mapeado, producto no añadido")
 
-ws.append(pedido_row)
-log(f"[LOG] Fila agregada al Excel: {pedido_row}")
+from openpyxl.utils import get_column_letter
+
+# --- Insertar fila en posición específica (fila 4) ---
+target_row = 4
+for col_idx, value in enumerate(pedido_row, start=1):  # start=1 porque openpyxl usa 1-index
+    ws.cell(row=target_row, column=col_idx, value=value)
+log(f"[LOG] Fila agregada al Excel en fila {target_row}: {pedido_row}")
 
 # --- Guardar Excel en GitHub ---
 output = BytesIO()
