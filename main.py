@@ -42,20 +42,29 @@ async def ringover_webhook(payload: RingoverPayload):
 @app.post("/wattwin-webhook")
 async def wattwin_webhook(payload: dict):
     try:
-        # Usar "id" en lugar de "instanceId"
         instance_id = payload.get("id")
         if not instance_id:
             raise HTTPException(status_code=400, detail="No id provided in payload")
 
         nombre = payload.get("name", "")
         fecha = payload.get("stage", {}).get("updatedAt", "")
-        stage_name = payload.get("stage", {}).get("name", "")
+        stage_id = payload.get("stageId")  # stageId directo desde payload
 
-        logs = process_wattwin_order(instance_id, nombre, fecha, stage_name)
+        # Stage permitido
+        STAGE_ALLOWED = "684ad5a0d313a30d7ba4036e"
+
+        if stage_id != STAGE_ALLOWED:
+            return {
+                "status": "skipped",
+                "message": f"StageId {stage_id} no coincide, webhook ignorado"
+            }
+
+        logs = process_wattwin_order(instance_id, nombre, fecha, stage_id)
 
         return {"status": "success", "logs": logs}
 
     except Exception as e:
         print(f"[ERROR] /wattwin-webhook failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
