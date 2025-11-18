@@ -1,6 +1,7 @@
 # main.py 
 from fastapi import FastAPI, HTTPException 
 from pydantic import BaseModel 
+from wattwin import process_wattwin_order
 import subprocess
 import os 
 import requests
@@ -42,24 +43,7 @@ async def ringover_webhook(payload: RingoverPayload):
 @app.post("/wattwin-webhook")
 async def wattwin_webhook(payload: dict):
     try:
-        # Ejecuta tu script wattwin.py tal cual
-        result = subprocess.run(
-            ["python", "wattwin.py"],  # ruta a tu script
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return {
-            "status": "success",
-            "stdout": result.stdout,
-            "stderr": result.stderr
-        }
-    except subprocess.CalledProcessError as e:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "status": "error",
-                "stdout": e.stdout,
-                "stderr": e.stderr
-            }
-        )
+        logs = process_wattwin_order(order_id="69134d11b9c1d30b15fabdc3")
+        return {"status": "success", "logs": logs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
