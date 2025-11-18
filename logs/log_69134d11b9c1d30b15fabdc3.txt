@@ -12,5 +12,5 @@
 [LOG] Procesando línea 4: BATERÍA LITIO SIGEN ENERGY SIGENSTOR 8,0KW (ID: 6889f0fb905ec60ad5a20ff1, Cantidad: 1)
 [LOG] categoryId obtenido: 6328b2a5efa9419a5938b927
 [LOG] Producto colocado en columna 11 (Unidades Baterías)
-[LOG] Fila agregada al Excel: ['Pedido 1', '', '', 'Bomba de calor acs 200l Sin serpentín', '1', 'Estaciones de recarga rápida compactos Circutor RAPTION 50 EVO CCS2 T2S32', '1', '', '', 'Inversor híbrido monofásico SUN-6k-SG05LP1-EU', '1', 'BATERÍA LITIO SIGEN ENERGY SIGENSTOR 8,0KW', '1', '', '', '', '', 'LEG']
+[LOG] Fila agregada al Excel en fila 4: ['Pedido 1', '', '', 'Bomba de calor acs 200l Sin serpentín', '1', 'Estaciones de recarga rápida compactos Circutor RAPTION 50 EVO CCS2 T2S32', '1', '', '', 'Inversor híbrido monofásico SUN-6k-SG05LP1-EU', '1', 'BATERÍA LITIO SIGEN ENERGY SIGENSTOR 8,0KW', '1', '', '', '', '', 'LEG']
 [LOG] Excel actualizado correctamente en GitHub
