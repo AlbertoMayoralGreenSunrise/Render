@@ -47,6 +47,7 @@ async def wattwin_webhook(payload: dict):
             raise HTTPException(status_code=400, detail="No id provided in payload")
 
         nombre = payload.get("name", "")
+        ref = payload.get("ref", "")
         fecha = payload.get("stage", {}).get("updatedAt", "")
         stage_id = payload.get("stageId")  # stageId directo desde payload
 
@@ -59,7 +60,7 @@ async def wattwin_webhook(payload: dict):
                 "message": f"StageId {stage_id} no coincide, webhook ignorado"
             }
 
-        logs = process_wattwin_order(instance_id, nombre, fecha, stage_id)
+        logs = process_wattwin_order(instance_id, nombre, fecha, stage_id, ref)
 
         return {"status": "success", "logs": logs}
 
