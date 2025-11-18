@@ -39,33 +39,23 @@ async def ringover_webhook(payload: RingoverPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-from fastapi import FastAPI, HTTPException
-
-app = FastAPI()
-
 @app.post("/wattwin-webhook")
 async def wattwin_webhook(payload: dict):
     try:
-        # Extraer información directamente del payload
-        order_id = payload.get("id")
-        if not order_id:
-            raise HTTPException(status_code=400, detail="No order id provided in payload")
+        # Usar "id" en lugar de "instanceId"
+        instance_id = payload.get("id")
+        if not instance_id:
+            raise HTTPException(status_code=400, detail="No id provided in payload")
 
-        order_name = payload.get("name", "")
+        nombre = payload.get("name", "")
+        fecha = payload.get("stage", {}).get("updatedAt", "")
         stage_name = payload.get("stage", {}).get("name", "")
-        stage_updated_at = payload.get("stage", {}).get("updatedAt", "")
 
-        # Llamar a tu función pasando la información relevante
-        logs = process_wattwin_order(
-            order_id=order_id,
-            order_name=order_name,
-            stage_name=stage_name,
-            stage_date=stage_updated_at
-        )
+        logs = process_wattwin_order(instance_id, nombre, fecha)
 
         return {"status": "success", "logs": logs}
 
     except Exception as e:
+        print(f"[ERROR] /wattwin-webhook failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
