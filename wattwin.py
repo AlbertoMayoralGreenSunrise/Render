@@ -6,7 +6,7 @@ from openpyxl import Workbook
 
 # --- Variables de entorno ---
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-GITHUB_REPO = "usuario/repositorio"  # e.g., "AlbertoMayoral/wattwin-excel"
+GITHUB_REPO = "AlbertoMayoralGreenSunrise/Render"  # e.g., "AlbertoMayoral/wattwin-excel"
 GITHUB_BRANCH = "main"               # rama donde subirás el Excel
 WATTWIN_API_KEY = os.environ["WATTWIN_API_KEY"]
 ORDER_ID = "6915ec902c8ed10ae318fb79"
