@@ -19,6 +19,8 @@ resp = requests.get(
 )
 products = resp.json()
 
+products_lines = resp.json()
+
 # --- Crear Excel ---
 wb = Workbook()
 ws = wb.active
@@ -28,13 +30,37 @@ columns = ["Numero", "Nombre", "Unidades", "Estructura", "Paneles", "Unidades4",
            "Cargador VE", "Pajareras", "Fecha de venta", "LEG"]
 ws.append(columns)
 
-for p in products:
-    ws.append([
-        p.get("index"),
-        p.get("name"),
-        p.get("count"),
-        "", "", "", "", "", "", "", "", "", "", "", ""
-    ])
+brand_to_column = {
+    "Estructura": 3,
+    "Panel": 4,
+    "Optimizador": 6,
+    "Inversor": 8,
+    "Batería": 10,
+    "Cargador": 11,
+    "Pajareras": 12,
+}
+
+for line in products_lines:
+    product_id = line.get("productId")
+    # Llamada individual para obtener info completa del producto
+    product_resp = requests.get(
+        f"https://public.api.wattwin.com/v1/Products/{product_id}",
+        headers={"accept": "application/json", "x-api-key": WATTWIN_API_KEY}
+    )
+    product = product_resp.json()
+
+    row = [""] * len(columns)
+    row[0] = line.get("index")
+    row[1] = product.get("name", "")
+    row[2] = line.get("count", 0)
+
+    brand = product.get("brand", "").lower()
+    for key, col_idx in brand_to_column.items():
+        if key.lower() in brand:
+            row[col_idx] = product.get("name", "")
+    
+    ws.append(row)
+
 
 # Guardar temporalmente
 file_path = f"/tmp/presupuesto_{ORDER_ID}.xlsx"
