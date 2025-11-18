@@ -2,14 +2,13 @@ import os
 import base64
 import json
 import requests
-from openpyxl import Workbook, load_workbook
+from openpyxl import Workbook
 from io import BytesIO, StringIO
 
 # --- Capturar "logs" en memoria ---
 log_stream = StringIO()
 
 def log(msg):
-    """Guardar mensaje en log_stream"""
     log_stream.write(msg + "\n")
 
 # --- Variables de entorno ---
@@ -33,9 +32,11 @@ except Exception as e:
     log(f"[ERROR] Error al obtener líneas de pedido: {e}")
     products_lines = []
 
-# --- Obtener Excel existente de GitHub ---
-github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas.xlsx"
-headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+# ============================================================
+#   SIEMPRE CREAR EXCEL NUEVO — NO LEER NADA DE GITHUB
+# ============================================================
+
+log("[LOG] Creando Excel nuevo, ignorando cualquier versión anterior")
 
 columns = [
     "Numero", "Nombre",
@@ -49,40 +50,34 @@ columns = [
     "Fecha de venta", "LEG"
 ]
 
-try:
-    get_resp = requests.get(github_api_url_excel, headers=headers, params={"ref": GITHUB_BRANCH})
-    get_resp.raise_for_status()
-    file_data = get_resp.json()
-    sha_excel = file_data["sha"]
-    file_content = base64.b64decode(file_data["content"])
-    wb = load_workbook(filename=BytesIO(file_content))
-    ws = wb.active
-    log("[LOG] Excel existente cargado desde GitHub")
-except Exception:
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Productos"
-    ws.append(columns)
-    sha_excel = None
-    log("[LOG] Nuevo Excel creado")
+wb = Workbook()
+ws = wb.active
+ws.title = "Productos"
 
-# --- Mapeo consistente categoryId → columna del NOMBRE ---
+# Cabeceras
+ws.append(columns)
+
+sha_excel = None   # ← obligatorio: siempre lo tratamos como nuevo
+
+# ============================================================
+
+# --- Mapeo categoryId → columna del nombre ---
 category_to_column = {
-    "641070821fff5b625088e567": 3,   # Bomba de calor → Estructura
-    "6328b2a5efa9419a5938b922": 5,   # Estaciones de recarga → Paneles
-    "6328b2a5efa9419a5938b921": 9,   # Inversor → Inversor
-    "6328b2a5efa9419a5938b927": 11,  # Baterías → Baterías
-    "6328b2a5efa9419a5938b923": 7,   # Optimizador → Optimizador (ejemplo)
-    "6328b2a5efa9419a5938b924": 13,  # Cargador VE → Cargador VE
-    "6328b2a5efa9419a5938b925": 15   # Pajareras → Pajareras
+    "641070821fff5b625088e567": 3,
+    "6328b2a5efa9419a5938b922": 5,
+    "6328b2a5efa9419a5938b921": 9,
+    "6328b2a5efa9419a5938b927": 11,
+    "6328b2a5efa9419a5938b923": 7,
+    "6328b2a5efa9419a5938b924": 13,
+    "6328b2a5efa9419a5938b925": 15
 }
 
-# --- Crear fila vacía para un pedido ---
+# --- Crear fila vacía ---
 pedido_row = [""] * len(columns)
 pedido_row[0] = "Pedido 1"
 pedido_row[-1] = "LEG"
 
-# --- Recorrer productos ---
+# --- Procesar líneas ---
 for idx, line in enumerate(products_lines, start=1):
     product_name = line.get("name", "")
     count = line.get("count", 0)
@@ -105,68 +100,70 @@ for idx, line in enumerate(products_lines, start=1):
 
     if category_id in category_to_column:
         col_idx = category_to_column[category_id]
-        # Añadir nombre y unidades
+
         if pedido_row[col_idx]:
             pedido_row[col_idx] += f", {product_name}"
             pedido_row[col_idx + 1] += f" + {count}"
         else:
             pedido_row[col_idx] = product_name
             pedido_row[col_idx + 1] = str(count)
+
         log(f"[LOG] Producto colocado en columna {col_idx} ({columns[col_idx]})")
     else:
         log(f"[WARN] categoryId {category_id} no mapeado, producto no añadido")
 
-from openpyxl.utils import get_column_letter
-
-# --- Insertar fila en posición específica (fila 4) ---
+# Insertar en fila 4 siempre
 target_row = 4
-for col_idx, value in enumerate(pedido_row, start=1):  # start=1 porque openpyxl usa 1-index
+for col_idx, value in enumerate(pedido_row, start=1):
     ws.cell(row=target_row, column=col_idx, value=value)
+
 log(f"[LOG] Fila agregada al Excel en fila {target_row}: {pedido_row}")
 
-# --- Guardar Excel en GitHub ---
+# ============================================================
+#  SUBIR SIEMPRE EL EXCEL NUEVO A GITHUB (SOBREESCRIBE)
+# ============================================================
+
 output = BytesIO()
 wb.save(output)
 content_excel = base64.b64encode(output.getvalue()).decode()
 
+github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas.xlsx"
+headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+
 data_excel = {
-    "message": f"Actualizar presupuesto {ORDER_ID}",
+    "message": f"Crear nuevo Excel para pedido {ORDER_ID}",
     "content": content_excel,
     "branch": GITHUB_BRANCH
 }
-if sha_excel:
-    data_excel["sha"] = sha_excel
 
+# Nunca incluir sha → GitHub lo reemplaza siempre
 try:
     put_resp = requests.put(github_api_url_excel, headers=headers, data=json.dumps(data_excel))
     put_resp.raise_for_status()
-    log("[LOG] Excel actualizado correctamente en GitHub")
+    log("[LOG] Excel NUEVO subido correctamente a GitHub")
 except Exception as e:
     log(f"[ERROR] GitHub PUT falló: {e}")
 
-# --- Subir logs como archivo de texto a GitHub ---
+# ============================================================
+#  GUARDAR LOGS
+# ============================================================
+
 log_stream.seek(0)
 logs_content = log_stream.read()
+
 log_file_path = f"logs/log_{ORDER_ID}.txt"
 github_api_url_logs = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{log_file_path}"
 
+put_data_logs = {
+    "message": f"Guardar logs pedido {ORDER_ID}",
+    "content": base64.b64encode(logs_content.encode()).decode(),
+    "branch": GITHUB_BRANCH
+}
+
 try:
-    get_resp_logs = requests.get(github_api_url_logs, headers=headers, params={"ref": GITHUB_BRANCH})
-    if get_resp_logs.status_code == 200:
-        sha_logs = get_resp_logs.json()["sha"]
-    else:
-        sha_logs = None
-
-    put_data_logs = {
-        "message": f"Guardar logs pedido {ORDER_ID}",
-        "content": base64.b64encode(logs_content.encode()).decode(),
-        "branch": GITHUB_BRANCH
-    }
-    if sha_logs:
-        put_data_logs["sha"] = sha_logs
-
     put_resp_logs = requests.put(github_api_url_logs, headers=headers, data=json.dumps(put_data_logs))
     put_resp_logs.raise_for_status()
     log("[LOG] Logs subidos correctamente a GitHub")
 except Exception as e:
     log(f"[ERROR] No se pudieron subir los logs: {e}")
+
