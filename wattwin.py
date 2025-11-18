@@ -37,6 +37,18 @@ except Exception as e:
 github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas.xlsx"
 headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
+columns = [
+    "Numero", "Nombre",
+    "Estructura", "Unidades Estructura",
+    "Paneles", "Unidades Paneles",
+    "Optimizador", "Unidades Optimizador",
+    "Inversor", "Unidades Inversor",
+    "Baterías", "Unidades Baterías",
+    "Cargador VE", "Unidades Cargador VE",
+    "Pajareras", "Unidades Pajareras",
+    "Fecha de venta", "LEG"
+]
+
 try:
     get_resp = requests.get(github_api_url_excel, headers=headers, params={"ref": GITHUB_BRANCH})
     get_resp.raise_for_status()
@@ -46,24 +58,10 @@ try:
     wb = load_workbook(filename=BytesIO(file_content))
     ws = wb.active
     log("[LOG] Excel existente cargado desde GitHub")
-# --- Crear Excel nuevo en caso de error ---
 except Exception:
     wb = Workbook()
     ws = wb.active
     ws.title = "Productos"
-    
-    columns = [
-        "Numero", "Nombre",      # info general del pedido
-        "Estructura", "Unidades Estructura",
-        "Paneles", "Unidades Paneles",
-        "Optimizador", "Unidades Optimizador",
-        "Inversor", "Unidades Inversor",
-        "Baterías", "Unidades Baterías",
-        "Cargador VE", "Unidades Cargador VE",
-        "Pajareras", "Unidades Pajareras",
-        "Fecha de venta", "LEG"
-    ]
-    
     ws.append(columns)
     sha_excel = None
     log("[LOG] Nuevo Excel creado")
@@ -80,7 +78,7 @@ category_to_column = {
 }
 
 # --- Crear fila vacía para un pedido ---
-pedido_row = [""] * 15
+pedido_row = [""] * len(columns)
 pedido_row[0] = "Pedido 1"
 pedido_row[-1] = "LEG"
 
