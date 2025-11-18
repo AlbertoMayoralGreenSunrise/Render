@@ -1,5 +1,5 @@
 [LOG] Número de líneas de pedido obtenidas: 5
-[LOG] Nuevo Excel creado
+[LOG] Excel existente cargado desde GitHub
 [LOG] Procesando línea 1: Bomba de calor acs 200l Sin serpentín (ID: 688b37e7dfe2d90b060e733d, Cantidad: 1)
 [LOG] categoryId obtenido: 641070821fff5b625088e567
 [WARN] categoryId 641070821fff5b625088e567 no mapeado, producto no añadido
@@ -15,5 +15,5 @@
 [LOG] Procesando línea 5: Estructura coplanar NOVOTEGRA (ID: 65953ba2cde5bc0de7d53535, Cantidad: 1)
 [LOG] categoryId obtenido: 6328b2a5efa9419a5938b92d
 [LOG] Producto colocado en columna 2 (Estructura)
-[LOG] Fila agregada al Excel en fila 2: [2488, 'Test Ringover (NO TOCAR)', 'Estructura coplanar NOVOTEGRA', '1', '', '', '', '', 'Inversor híbrido monofásico SUN-6k-SG05LP1-EU', '1', 'BATERÍA LITIO SIGEN ENERGY SIGENSTOR 8,0KW', '1', '', '', '', '', '2024-01-03T10:49:29.104Z', '']
+[LOG] Fila agregada al Excel en fila 3: [2488, 'Test Ringover (NO TOCAR)', 'Estructura coplanar NOVOTEGRA', '1', '', '', '', '', 'Inversor híbrido monofásico SUN-6k-SG05LP1-EU', '1', 'BATERÍA LITIO SIGEN ENERGY SIGENSTOR 8,0KW', '1', '', '', '', '', '2024-01-03T10:49:29.104Z', '']
 [LOG] Excel subido correctamente a GitHub (creado o sobreescrito)
