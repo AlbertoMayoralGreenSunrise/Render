@@ -44,22 +44,24 @@ else:
 
 # --- Mapeo de categoryId a columna en el Excel ---
 category_to_column = {
-    "6328b2a5efa9419a5938b927": 10,  # Baterías
-    # Agrega aquí más categoryId si quieres mapear otras categorías
+    "641070821fff5b625088e567": 3,   # Bomba de calor → Estructura
+    "6328b2a5efa9419a5938b922": 4,   # Estaciones de recarga → Paneles
+    "6328b2a5efa9419a5938b921": 8,   # Inversor → Inversor
+    "6328b2a5efa9419a5938b927": 10,  # Baterías → Baterías
+    # Puedes añadir más categoryId si tienes otras categorías
 }
 
 # --- Crear fila para un pedido ---
 pedido_row = [""] * 15
-pedido_row[0] = "Pedido 1"  # Número de pedido
+pedido_row[0] = "Pedido 1"  # Numero
 pedido_row[14] = "LEG"       # Fecha o LEG
 
-# --- Recorrer productos y obtener categoryId desde Wattwin ---
+# --- Recorrer productos y colocarlos según categoryId ---
 for line in products_lines:
     product_name = line.get("name", "")
     count = line.get("count", 0)
     product_id = line.get("productId")
 
-    # Llamada a Wattwin para obtener el producto y su categoryId
     category_id = ""
     if product_id:
         product_resp = requests.get(
@@ -73,8 +75,14 @@ for line in products_lines:
     # Colocar el producto en la columna correspondiente según categoryId
     if category_id in category_to_column:
         col_idx = category_to_column[category_id]
-        pedido_row[col_idx] = product_name
-        pedido_row[col_idx + 1] = count
+
+        # Si ya hay un producto en esa columna, concatenamos nombres
+        if pedido_row[col_idx]:
+            pedido_row[col_idx] += f", {product_name}"
+            pedido_row[col_idx + 1] += f" + {count}"
+        else:
+            pedido_row[col_idx] = product_name
+            pedido_row[col_idx + 1] = str(count)
 
 # --- Agregar fila al Excel ---
 ws.append(pedido_row)
