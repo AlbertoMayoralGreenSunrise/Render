@@ -6,9 +6,25 @@ import requests
 from openpyxl import Workbook
 from io import BytesIO, StringIO
 
-def process_wattwin_order(order_id: str):
-    log_stream = StringIO()
+def get_order_id(instance_id: str, api_key: str):
+    url = "https://public.api.wattwin.com/v1/ECommerceOrders/search"
+    payload = {
+        "query": {
+            "term": {"instanceId": instance_id}
+        }
+    }
+    resp = requests.post(url, headers={"Content-Type": "application/json", "x-api-key": api_key}, json=payload)
+    resp.raise_for_status()
+    hits = resp.json().get("hits", {}).get("hits", [])
+    if not hits:
+        raise ValueError(f"No se encontró order para instanceId {instance_id}")
+    return hits[0]["_source"]["id"]
 
+def process_wattwin_order(instance_id: str, nombre: str, fecha: str):
+    WATTWIN_API_KEY = os.environ["WATTWIN_API_KEY"]
+    order_id = get_order_id(instance_id, WATTWIN_API_KEY)
+    
+    log_stream = StringIO()
     def log(msg):
         log_stream.write(msg + "\n")
 
@@ -62,8 +78,9 @@ def process_wattwin_order(order_id: str):
 
     # --- Crear fila del pedido ---
     pedido_row = [""] * len(columns)
-    pedido_row[0] = "Pedido TEST"
-    pedido_row[-1] = "LEG"
+    pedido_row[1] = nombre     # Columna "Nombre"
+    pedido_row[13] = fecha     # Columna "Fecha de venta"
+
 
     for idx, line in enumerate(products_lines, start=1):
         product_name = line.get("name", "")
