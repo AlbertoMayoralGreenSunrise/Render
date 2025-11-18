@@ -19,6 +19,7 @@ resp = requests.get(
     params={"filter": f'{{"where":{{"orderId":"{ORDER_ID}"}}}}'}
 )
 products_lines = resp.json()
+print(f"[LOG] Número de líneas de pedido obtenidas: {len(products_lines)}")
 
 # --- Obtener Excel existente de GitHub ---
 github_api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas.xlsx"
@@ -31,8 +32,8 @@ if get_resp.status_code == 200:
     file_content = base64.b64decode(file_data["content"])
     wb = load_workbook(filename=BytesIO(file_content))
     ws = wb.active
+    print("[LOG] Excel existente cargado desde GitHub")
 else:
-    # Si no existe, crear nuevo Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Productos"
@@ -41,6 +42,7 @@ else:
                "Cargador VE", "Pajareras", "Fecha de venta", "LEG"]
     ws.append(columns)
     sha = None
+    print("[LOG] Nuevo Excel creado")
 
 # --- Mapeo de categoryId a columna en el Excel ---
 category_to_column = {
@@ -48,7 +50,6 @@ category_to_column = {
     "6328b2a5efa9419a5938b922": 4,   # Estaciones de recarga → Paneles
     "6328b2a5efa9419a5938b921": 8,   # Inversor → Inversor
     "6328b2a5efa9419a5938b927": 10,  # Baterías → Baterías
-    # Puedes añadir más categoryId si tienes otras categorías
 }
 
 # --- Crear fila para un pedido ---
@@ -57,10 +58,11 @@ pedido_row[0] = "Pedido 1"  # Numero
 pedido_row[14] = "LEG"       # Fecha o LEG
 
 # --- Recorrer productos y colocarlos según categoryId ---
-for line in products_lines:
+for idx, line in enumerate(products_lines, start=1):
     product_name = line.get("name", "")
     count = line.get("count", 0)
     product_id = line.get("productId")
+    print(f"[LOG] Procesando línea {idx}: {product_name} (ID: {product_id}, Cantidad: {count})")
 
     category_id = ""
     if product_id:
@@ -71,21 +73,27 @@ for line in products_lines:
         if product_resp.status_code == 200:
             product_data = product_resp.json()
             category_id = product_data.get("categoryId", "")
+            print(f"[LOG] categoryId obtenido: {category_id}")
+        else:
+            print(f"[ERROR] No se pudo obtener producto {product_id} (status {product_resp.status_code})")
 
     # Colocar el producto en la columna correspondiente según categoryId
     if category_id in category_to_column:
         col_idx = category_to_column[category_id]
 
-        # Si ya hay un producto en esa columna, concatenamos nombres
         if pedido_row[col_idx]:
             pedido_row[col_idx] += f", {product_name}"
             pedido_row[col_idx + 1] += f" + {count}"
         else:
             pedido_row[col_idx] = product_name
             pedido_row[col_idx + 1] = str(count)
+        print(f"[LOG] Producto colocado en columna {col_idx}")
+    else:
+        print(f"[WARN] categoryId {category_id} no mapeado, producto no añadido")
 
 # --- Agregar fila al Excel ---
 ws.append(pedido_row)
+print("[LOG] Fila agregada al Excel:", pedido_row)
 
 # --- Guardar Excel en memoria y subir a GitHub ---
 output = BytesIO()
@@ -104,4 +112,4 @@ put_resp = requests.put(github_api_url, headers=headers, data=json.dumps(data))
 if put_resp.status_code in [200, 201]:
     print("Excel actualizado correctamente en GitHub")
 else:
-    print(put_resp.status_code, put_resp.text)
+    print("[ERROR] GitHub PUT falló:", put_resp.status_code, put_resp.text)
