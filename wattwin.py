@@ -46,29 +46,43 @@ try:
     wb = load_workbook(filename=BytesIO(file_content))
     ws = wb.active
     log("[LOG] Excel existente cargado desde GitHub")
+# --- Crear Excel nuevo en caso de error ---
 except Exception:
     wb = Workbook()
     ws = wb.active
     ws.title = "Productos"
-    columns = ["Numero", "Nombre", "Unidades", "Estructura", "Paneles", "Unidades4",
-               "Optimizador", "Unidades2", "Inversor", "Unidades3", "Baterías",
-               "Cargador VE", "Pajareras", "Fecha de venta", "LEG"]
+    
+    columns = [
+        "Numero", "Nombre",      # info general del pedido
+        "Estructura", "Unidades Estructura",
+        "Paneles", "Unidades Paneles",
+        "Optimizador", "Unidades Optimizador",
+        "Inversor", "Unidades Inversor",
+        "Baterías", "Unidades Baterías",
+        "Cargador VE", "Unidades Cargador VE",
+        "Pajareras", "Unidades Pajareras",
+        "Fecha de venta", "LEG"
+    ]
+    
     ws.append(columns)
     sha_excel = None
     log("[LOG] Nuevo Excel creado")
 
-# --- Mapeo de categoryId a columna en el Excel ---
+# --- Mapeo consistente categoryId → columna del NOMBRE ---
 category_to_column = {
     "641070821fff5b625088e567": 3,   # Bomba de calor → Estructura
-    "6328b2a5efa9419a5938b922": 4,   # Estaciones de recarga → Paneles
-    "6328b2a5efa9419a5938b921": 8,   # Inversor → Inversor
-    "6328b2a5efa9419a5938b927": 10,  # Baterías → Baterías
+    "6328b2a5efa9419a5938b922": 5,   # Estaciones de recarga → Paneles
+    "6328b2a5efa9419a5938b921": 9,   # Inversor → Inversor
+    "6328b2a5efa9419a5938b927": 11,  # Baterías → Baterías
+    "6328b2a5efa9419a5938b923": 7,   # Optimizador → Optimizador (ejemplo)
+    "6328b2a5efa9419a5938b924": 13,  # Cargador VE → Cargador VE
+    "6328b2a5efa9419a5938b925": 15   # Pajareras → Pajareras
 }
 
-# --- Crear fila para un pedido ---
-pedido_row = [""] * 15
+# --- Crear fila vacía para un pedido ---
+pedido_row = [""] * len(columns)
 pedido_row[0] = "Pedido 1"
-pedido_row[14] = "LEG"
+pedido_row[-1] = "LEG"
 
 # --- Recorrer productos ---
 for idx, line in enumerate(products_lines, start=1):
@@ -93,13 +107,14 @@ for idx, line in enumerate(products_lines, start=1):
 
     if category_id in category_to_column:
         col_idx = category_to_column[category_id]
+        # Añadir nombre y unidades
         if pedido_row[col_idx]:
             pedido_row[col_idx] += f", {product_name}"
             pedido_row[col_idx + 1] += f" + {count}"
         else:
             pedido_row[col_idx] = product_name
             pedido_row[col_idx + 1] = str(count)
-        log(f"[LOG] Producto colocado en columna {col_idx}")
+        log(f"[LOG] Producto colocado en columna {col_idx} ({columns[col_idx]})")
     else:
         log(f"[WARN] categoryId {category_id} no mapeado, producto no añadido")
 
