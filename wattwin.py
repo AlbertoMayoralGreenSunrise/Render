@@ -33,7 +33,7 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
     GITHUB_REPO = "AlbertoMayoralGreenSunrise/Render"
     GITHUB_BRANCH = "main"
 
-    github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/TEST_PRUEBA.xlsx"
+    github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/TEST_DEFINITIVO.xlsx"
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
     # --- Llamar a Wattwin ---
