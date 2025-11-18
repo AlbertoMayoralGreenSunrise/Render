@@ -51,14 +51,14 @@ def process_wattwin_order(order_id: str):
 
     # --- Mapeo categoryId → columna ---
     category_to_column = {
-        "641070821fff5b625088e567": 3,
-        "6328b2a5efa9419a5938b922": 5,
-        "6328b2a5efa9419a5938b921": 9,
-        "6328b2a5efa9419a5938b927": 11,
-        "6328b2a5efa9419a5938b923": 7,
-        "6328b2a5efa9419a5938b924": 13,
-        "6328b2a5efa9419a5938b925": 15
+        "6328b2a5efa9419a5938b92d": 2,  # Estructura
+        "6328b2a5efa9419a5938b91c": 4,  # Paneles
+        "6790e34a0a5301a6d0b6e7f8": 6,  # Optimizador
+        "6328b2a5efa9419a5938b921": 8,  # Inversor
+        "6328b2a5efa9419a5938b927": 10,  # Batería
+        "678e12f76d2390929fd91374": 12  # Cargador VE
     }
+
 
     # --- Crear fila del pedido ---
     pedido_row = [""] * len(columns)
