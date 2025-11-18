@@ -43,41 +43,61 @@ else:
     sha = None
 
 from openpyxl import Workbook, load_workbook
-from collections import defaultdict
+from io import BytesIO
+import base64
+import requests
 
-# Suponiendo que products_lines ya es la lista de productos de un pedido
-# Ejemplo de estructura de brand_to_column:
+# --- Obtener Excel existente de GitHub ---
+github_api_url = f"https://api.github.com/repos/AlbertoMayoralGreenSunrise/Render/contents/Material_ventas.xlsx"
+headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+
+get_resp = requests.get(github_api_url, headers=headers, params={"ref": GITHUB_BRANCH})
+if get_resp.status_code == 200:
+    file_data = get_resp.json()
+    sha = file_data["sha"]
+    file_content = base64.b64decode(file_data["content"])
+    wb = load_workbook(filename=BytesIO(file_content))
+    ws = wb.active
+else:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Productos"
+    columns = ["Numero", "Nombre", "Unidades", "Estructura", "Paneles", "Unidades4",
+               "Optimizador", "Unidades2", "Inversor", "Unidades3", "Baterías",
+               "Cargador VE", "Pajareras", "Fecha de venta", "LEG"]
+    ws.append(columns)
+    sha = None
+
+# --- Mapeo de brand a columna en el Excel ---
 brand_to_column = {
-    "Estructura": 3,
-    "Panel": 4,
-    "Optimizador": 6,
-    "Inversor": 8,
-    "Batería": 10,
-    "Cargador": 11,
-    "Pajareras": 12,
+    "estructura": 3,  # Nombre en columna 3, cantidad en columna 4
+    "panel": 4,
+    "optimizador": 6,
+    "inversor": 8,
+    "batería": 10,
+    "cargador": 11,
+    "pajareras": 12,
 }
 
-# Diccionario para agrupar por pedido
-pedido_row = [""] * 15  # 15 columnas como en tu Excel
-
+# --- Crear fila para un pedido ---
+pedido_row = [""] * 15
 pedido_row[0] = "Pedido 1"  # Numero
-pedido_row[1] = ""           # Nombre general si quieres
-pedido_row[14] = "LEG"       # Fecha de venta o LEG
+pedido_row[14] = "LEG"       # Fecha o LEG
 
+# --- Escribir cada producto distinto ---
 for line in products_lines:
-    product_name = line.get("name")  # o llamando al endpoint de producto
+    product_name = line.get("name", "")
     count = line.get("count", 0)
     brand = line.get("brand", "").lower()
 
-    # Buscar columna según brand
+    # Buscar la columna correspondiente
     for key, col_idx in brand_to_column.items():
-        if key.lower() in brand:
-            if pedido_row[col_idx]:  # si ya hay algo, sumar
-                pedido_row[col_idx] += f", {product_name} x{count}"
-            else:
-                pedido_row[col_idx] = f"{product_name} x{count}"
+        if key in brand:
+            pedido_row[col_idx] = product_name
+            pedido_row[col_idx + 1] = count
+            break  # una sola marca por producto
 
-# Finalmente agregar la fila
+# --- Agregar fila al Excel ---
 ws.append(pedido_row)
 
 
