@@ -84,27 +84,36 @@ pedido_row = [""] * 15
 pedido_row[0] = "Pedido 1"  # Numero
 pedido_row[14] = "LEG"       # Fecha o LEG
 
-# --- Escribir cada producto distinto ---
+# --- Recorrer productos y obtener brand desde Wattwin ---
 for line in products_lines:
     product_name = line.get("name", "")
     count = line.get("count", 0)
-    brand = line.get("brand", "").lower()
+    product_id = line.get("productId")
 
-    # Buscar la columna correspondiente
+    # Llamada a Wattwin para obtener el producto y su brand
+    if product_id:
+        product_resp = requests.get(
+            f"https://public.api.wattwin.com/v1/Products/{product_id}",
+            headers={"accept": "application/json", "x-api-key": WATTWIN_API_KEY}
+        )
+        if product_resp.status_code == 200:
+            product_data = product_resp.json()
+            brand = product_data.get("brand", "").lower()
+        else:
+            brand = ""
+    else:
+        brand = ""
+
+    # Colocar el producto en la columna correspondiente
     for key, col_idx in brand_to_column.items():
         if key in brand:
             pedido_row[col_idx] = product_name
             pedido_row[col_idx + 1] = count
-            break  # una sola marca por producto
+            break
 
 # --- Agregar fila al Excel ---
 ws.append(pedido_row)
 
-
-# --- Guardar Excel temporalmente ---
-from tempfile import NamedTemporaryFile
-tmp_file = NamedTemporaryFile(delete=False, suffix=".xlsx")
-wb.save(tmp_file.name)
 
 # --- Subir actualizado a GitHub ---
 with open(tmp_file.name, "rb") as f:
