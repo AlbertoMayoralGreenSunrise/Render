@@ -3,14 +3,14 @@ import base64
 import json
 import requests
 from openpyxl import Workbook, load_workbook
-from io import BytesIO
-import logging
+from io import BytesIO, StringIO
 
-# --- Configurar logging ---
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
+# --- Capturar "logs" en memoria ---
+log_stream = StringIO()
+
+def log(msg):
+    """Guardar mensaje en log_stream"""
+    log_stream.write(msg + "\n")
 
 # --- Variables de entorno ---
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
@@ -28,24 +28,24 @@ try:
     )
     resp.raise_for_status()
     products_lines = resp.json()
-    logging.info(f"Número de líneas de pedido obtenidas: {len(products_lines)}")
+    log(f"[LOG] Número de líneas de pedido obtenidas: {len(products_lines)}")
 except Exception as e:
-    logging.error(f"Error al obtener líneas de pedido: {e}")
+    log(f"[ERROR] Error al obtener líneas de pedido: {e}")
     products_lines = []
 
 # --- Obtener Excel existente de GitHub ---
-github_api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas.xlsx"
+github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas.xlsx"
 headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 try:
-    get_resp = requests.get(github_api_url, headers=headers, params={"ref": GITHUB_BRANCH})
+    get_resp = requests.get(github_api_url_excel, headers=headers, params={"ref": GITHUB_BRANCH})
     get_resp.raise_for_status()
     file_data = get_resp.json()
-    sha = file_data["sha"]
+    sha_excel = file_data["sha"]
     file_content = base64.b64decode(file_data["content"])
     wb = load_workbook(filename=BytesIO(file_content))
     ws = wb.active
-    logging.info("Excel existente cargado desde GitHub")
+    log("[LOG] Excel existente cargado desde GitHub")
 except Exception:
     wb = Workbook()
     ws = wb.active
@@ -54,8 +54,8 @@ except Exception:
                "Optimizador", "Unidades2", "Inversor", "Unidades3", "Baterías",
                "Cargador VE", "Pajareras", "Fecha de venta", "LEG"]
     ws.append(columns)
-    sha = None
-    logging.info("Nuevo Excel creado")
+    sha_excel = None
+    log("[LOG] Nuevo Excel creado")
 
 # --- Mapeo de categoryId a columna en el Excel ---
 category_to_column = {
@@ -67,15 +67,15 @@ category_to_column = {
 
 # --- Crear fila para un pedido ---
 pedido_row = [""] * 15
-pedido_row[0] = "Pedido 1"  # Numero
-pedido_row[14] = "LEG"      # Fecha o LEG
+pedido_row[0] = "Pedido 1"
+pedido_row[14] = "LEG"
 
-# --- Recorrer productos y colocarlos según categoryId ---
+# --- Recorrer productos ---
 for idx, line in enumerate(products_lines, start=1):
     product_name = line.get("name", "")
     count = line.get("count", 0)
     product_id = line.get("productId")
-    logging.info(f"Procesando línea {idx}: {product_name} (ID: {product_id}, Cantidad: {count})")
+    log(f"[LOG] Procesando línea {idx}: {product_name} (ID: {product_id}, Cantidad: {count})")
 
     category_id = ""
     if product_id:
@@ -87,44 +87,68 @@ for idx, line in enumerate(products_lines, start=1):
             product_resp.raise_for_status()
             product_data = product_resp.json()
             category_id = product_data.get("categoryId", "")
-            logging.info(f"categoryId obtenido: {category_id}")
+            log(f"[LOG] categoryId obtenido: {category_id}")
         except Exception as e:
-            logging.error(f"No se pudo obtener producto {product_id}: {e}")
+            log(f"[ERROR] No se pudo obtener producto {product_id}: {e}")
 
-    # Colocar el producto en la columna correspondiente según categoryId
     if category_id in category_to_column:
         col_idx = category_to_column[category_id]
-
         if pedido_row[col_idx]:
             pedido_row[col_idx] += f", {product_name}"
             pedido_row[col_idx + 1] += f" + {count}"
         else:
             pedido_row[col_idx] = product_name
             pedido_row[col_idx + 1] = str(count)
-        logging.info(f"Producto colocado en columna {col_idx}")
+        log(f"[LOG] Producto colocado en columna {col_idx}")
     else:
-        logging.warning(f"categoryId {category_id} no mapeado, producto no añadido")
+        log(f"[WARN] categoryId {category_id} no mapeado, producto no añadido")
 
-# --- Agregar fila al Excel ---
 ws.append(pedido_row)
-logging.info(f"Fila agregada al Excel: {pedido_row}")
+log(f"[LOG] Fila agregada al Excel: {pedido_row}")
 
-# --- Guardar Excel en memoria y subir a GitHub ---
+# --- Guardar Excel en GitHub ---
 output = BytesIO()
 wb.save(output)
-content = base64.b64encode(output.getvalue()).decode()
+content_excel = base64.b64encode(output.getvalue()).decode()
 
-data = {
+data_excel = {
     "message": f"Actualizar presupuesto {ORDER_ID}",
-    "content": content,
+    "content": content_excel,
     "branch": GITHUB_BRANCH
 }
-if sha:
-    data["sha"] = sha  # reemplazar archivo existente
+if sha_excel:
+    data_excel["sha"] = sha_excel
 
 try:
-    put_resp = requests.put(github_api_url, headers=headers, data=json.dumps(data))
+    put_resp = requests.put(github_api_url_excel, headers=headers, data=json.dumps(data_excel))
     put_resp.raise_for_status()
-    logging.info("Excel actualizado correctamente en GitHub")
+    log("[LOG] Excel actualizado correctamente en GitHub")
 except Exception as e:
-    logging.error(f"GitHub PUT falló: {e}")
+    log(f"[ERROR] GitHub PUT falló: {e}")
+
+# --- Subir logs como archivo de texto a GitHub ---
+log_stream.seek(0)
+logs_content = log_stream.read()
+log_file_path = f"logs/log_{ORDER_ID}.txt"
+github_api_url_logs = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{log_file_path}"
+
+try:
+    get_resp_logs = requests.get(github_api_url_logs, headers=headers, params={"ref": GITHUB_BRANCH})
+    if get_resp_logs.status_code == 200:
+        sha_logs = get_resp_logs.json()["sha"]
+    else:
+        sha_logs = None
+
+    put_data_logs = {
+        "message": f"Guardar logs pedido {ORDER_ID}",
+        "content": base64.b64encode(logs_content.encode()).decode(),
+        "branch": GITHUB_BRANCH
+    }
+    if sha_logs:
+        put_data_logs["sha"] = sha_logs
+
+    put_resp_logs = requests.put(github_api_url_logs, headers=headers, data=json.dumps(put_data_logs))
+    put_resp_logs.raise_for_status()
+    log("[LOG] Logs subidos correctamente a GitHub")
+except Exception as e:
+    log(f"[ERROR] No se pudieron subir los logs: {e}")
