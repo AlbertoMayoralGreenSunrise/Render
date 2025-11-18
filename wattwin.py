@@ -102,33 +102,61 @@ def process_wattwin_order(order_id: str):
         ws.cell(row=4, column=col_idx, value=value)
     log(f"[LOG] Fila agregada al Excel en fila 4: {pedido_row}")
 
-    # Guardar Excel en GitHub
+    # --- Guardar Excel en GitHub (con sobreescritura) ---
     output = BytesIO()
     wb.save(output)
     content_excel = base64.b64encode(output.getvalue()).decode()
     github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas_{order_id}.xlsx"
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
-    data_excel = {"message": f"Crear nuevo Excel para pedido {order_id}", "content": content_excel, "branch": GITHUB_BRANCH}
+    
+    # Obtener sha si el archivo existe
+    sha = None
+    get_resp = requests.get(github_api_url_excel, headers=headers)
+    if get_resp.status_code == 200:
+        sha = get_resp.json()["sha"]
+    
+    data_excel = {
+        "message": f"Crear/Actualizar Excel para pedido {order_id}",
+        "content": content_excel,
+        "branch": GITHUB_BRANCH,
+    }
+    if sha:
+        data_excel["sha"] = sha  # necesario para sobreescribir
+    
     try:
         put_resp = requests.put(github_api_url_excel, headers=headers, data=json.dumps(data_excel))
         put_resp.raise_for_status()
-        log("[LOG] Excel NUEVO subido correctamente a GitHub")
+        log("[LOG] Excel subido correctamente a GitHub (creado o sobreescrito)")
     except Exception as e:
         log(f"[ERROR] GitHub PUT falló: {e}")
 
-    # --- SUBIR LOGS A GITHUB ---
+
+    # --- SUBIR LOGS A GITHUB (con sobreescritura) ---
     logs_content = log_stream.getvalue()
     log_file_path = f"logs/log_{order_id}.txt"
     github_api_url_logs = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{log_file_path}"
-    put_data_logs = {"message": f"Guardar logs pedido {order_id}",
-                     "content": base64.b64encode(logs_content.encode()).decode(),
-                     "branch": GITHUB_BRANCH}
+    
+    # Obtener sha si existe
+    sha_logs = None
+    get_resp_logs = requests.get(github_api_url_logs, headers=headers)
+    if get_resp_logs.status_code == 200:
+        sha_logs = get_resp_logs.json()["sha"]
+    
+    put_data_logs = {
+        "message": f"Guardar logs pedido {order_id}",
+        "content": base64.b64encode(logs_content.encode()).decode(),
+        "branch": GITHUB_BRANCH,
+    }
+    if sha_logs:
+        put_data_logs["sha"] = sha_logs  # necesario para sobreescribir
+    
     try:
         put_resp_logs = requests.put(github_api_url_logs, headers=headers, data=json.dumps(put_data_logs))
         put_resp_logs.raise_for_status()
-        log("[LOG] Logs subidos correctamente a GitHub")
+        log("[LOG] Logs subidos correctamente a GitHub (creados o sobreescritos)")
     except Exception as e:
         log(f"[ERROR] No se pudieron subir los logs: {e}")
+
 
     # Retornar logs para debug
     log_stream.seek(0)
