@@ -51,7 +51,7 @@ async def wattwin_webhook(payload: dict):
         fecha = payload.get("stage", {}).get("updatedAt", "")
         stage_name = payload.get("stage", {}).get("name", "")
 
-        logs = process_wattwin_order(instance_id, nombre, fecha)
+        logs = process_wattwin_order(instance_id, nombre, fecha, stage_name)
 
         return {"status": "success", "logs": logs}
 
