@@ -39,8 +39,26 @@ async def ringover_webhook(payload: RingoverPayload):
 
 
 @app.post("/wattwin-webhook")
-async def wattwin_webhook(payload: WattwinPayload):
+async def wattwin_webhook(payload: dict):
     try:
-        return process_wattwin_opportunity(payload.dict())
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Ejecuta tu script wattwin.py tal cual
+        result = subprocess.run(
+            ["python", "wattwin.py"],  # ruta a tu script
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return {
+            "status": "success",
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        }
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "stdout": e.stdout,
+                "stderr": e.stderr
+            }
+        )
