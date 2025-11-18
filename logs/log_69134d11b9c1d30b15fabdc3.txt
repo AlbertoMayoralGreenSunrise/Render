@@ -1,0 +1,15 @@
+[LOG] Número de líneas de pedido obtenidas: 4
+[LOG] Procesando línea 1: Bomba de calor acs 200l Sin serpentín (ID: 688b37e7dfe2d90b060e733d, Cantidad: 1)
+[LOG] categoryId obtenido: 641070821fff5b625088e567
+[LOG] Producto colocado en columna 3 (Unidades Estructura)
+[LOG] Procesando línea 2: Estaciones de recarga rápida compactos Circutor RAPTION 50 EVO CCS2 T2S32 (ID: 65a5088f37fc290e0b6879f9, Cantidad: 1)
+[LOG] categoryId obtenido: 6328b2a5efa9419a5938b922
+[LOG] Producto colocado en columna 5 (Unidades Paneles)
+[LOG] Procesando línea 3: Inversor híbrido monofásico SUN-6k-SG05LP1-EU (ID: 6915fe6b7292530ab1e3b4a1, Cantidad: 1)
+[LOG] categoryId obtenido: 6328b2a5efa9419a5938b921
+[LOG] Producto colocado en columna 9 (Unidades Inversor)
+[LOG] Procesando línea 4: BATERÍA LITIO SIGEN ENERGY SIGENSTOR 8,0KW (ID: 6889f0fb905ec60ad5a20ff1, Cantidad: 1)
+[LOG] categoryId obtenido: 6328b2a5efa9419a5938b927
+[LOG] Producto colocado en columna 11 (Unidades Baterías)
+[LOG] Fila agregada al Excel en fila 4: ['Pedido 1', '', '', 'Bomba de calor acs 200l Sin serpentín', '1', 'Estaciones de recarga rápida compactos Circutor RAPTION 50 EVO CCS2 T2S32', '1', '', '', 'Inversor híbrido monofásico SUN-6k-SG05LP1-EU', '1', 'BATERÍA LITIO SIGEN ENERGY SIGENSTOR 8,0KW', '1', '', '', '', '', 'LEG']
+[LOG] Excel NUEVO subido correctamente a GitHub
