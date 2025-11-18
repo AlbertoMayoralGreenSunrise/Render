@@ -42,7 +42,11 @@ else:
     ws.append(columns)
     sha = None
 
-# --- Añadir nuevas líneas ---
+from openpyxl import Workbook, load_workbook
+from collections import defaultdict
+
+# Suponiendo que products_lines ya es la lista de productos de un pedido
+# Ejemplo de estructura de brand_to_column:
 brand_to_column = {
     "Estructura": 3,
     "Panel": 4,
@@ -53,25 +57,29 @@ brand_to_column = {
     "Pajareras": 12,
 }
 
+# Diccionario para agrupar por pedido
+pedido_row = [""] * 15  # 15 columnas como en tu Excel
+
+pedido_row[0] = "Pedido 1"  # Numero
+pedido_row[1] = ""           # Nombre general si quieres
+pedido_row[14] = "LEG"       # Fecha de venta o LEG
+
 for line in products_lines:
-    product_id = line.get("productId")
-    product_resp = requests.get(
-        f"https://public.api.wattwin.com/v1/Products/{product_id}",
-        headers={"accept": "application/json", "x-api-key": WATTWIN_API_KEY}
-    )
-    product = product_resp.json()
+    product_name = line.get("name")  # o llamando al endpoint de producto
+    count = line.get("count", 0)
+    brand = line.get("brand", "").lower()
 
-    row = [""] * ws.max_column
-    row[0] = line.get("index")
-    row[1] = product.get("name", "")
-    row[2] = line.get("count", 0)
-
-    brand = product.get("brand", "").lower()
+    # Buscar columna según brand
     for key, col_idx in brand_to_column.items():
         if key.lower() in brand:
-            row[col_idx] = product.get("name", "")
+            if pedido_row[col_idx]:  # si ya hay algo, sumar
+                pedido_row[col_idx] += f", {product_name} x{count}"
+            else:
+                pedido_row[col_idx] = f"{product_name} x{count}"
 
-    ws.append(row)
+# Finalmente agregar la fila
+ws.append(pedido_row)
+
 
 # --- Guardar Excel temporalmente ---
 from tempfile import NamedTemporaryFile
