@@ -62,7 +62,7 @@ def process_wattwin_order(order_id: str):
 
     # --- Crear fila del pedido ---
     pedido_row = [""] * len(columns)
-    pedido_row[0] = "Pedido 1"
+    pedido_row[0] = "Pedido TEST"
     pedido_row[-1] = "LEG"
 
     for idx, line in enumerate(products_lines, start=1):
