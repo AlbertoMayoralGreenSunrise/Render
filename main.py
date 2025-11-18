@@ -60,7 +60,7 @@ async def wattwin_webhook(payload: dict):
                 "message": f"StageId {stage_id} no coincide, webhook ignorado"
             }
 
-        logs = process_wattwin_order(instance_id, nombre, fecha, stage_id, ref)
+        logs = process_wattwin_order(instance_id, nombre, fecha, ref)
 
         return {"status": "success", "logs": logs}
 
