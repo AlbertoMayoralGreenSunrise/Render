@@ -80,7 +80,7 @@ category_to_column = {
 }
 
 # --- Crear fila vacía para un pedido ---
-pedido_row = [""] * len(columns)
+pedido_row = [""] * 15
 pedido_row[0] = "Pedido 1"
 pedido_row[-1] = "LEG"
 
