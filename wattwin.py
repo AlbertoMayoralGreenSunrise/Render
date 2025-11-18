@@ -20,7 +20,7 @@ def get_order_id(instance_id: str, api_key: str):
         raise ValueError(f"No se encontró order para instanceId {instance_id}")
     return hits[0]["_source"]["id"]
 
-def process_wattwin_order(instance_id: str, nombre: str, fecha: str):
+def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
     WATTWIN_API_KEY = os.environ["WATTWIN_API_KEY"]
     order_id = get_order_id(instance_id, WATTWIN_API_KEY)
     
@@ -78,8 +78,9 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str):
 
     # --- Crear fila del pedido ---
     pedido_row = [""] * len(columns)
+    pedido_row[0] = ref        # Columna "Numero"
     pedido_row[1] = nombre     # Columna "Nombre"
-    pedido_row[13] = fecha     # Columna "Fecha de venta"
+    pedido_row[16] = fecha     # Columna "Fecha de venta"
 
 
     for idx, line in enumerate(products_lines, start=1):
