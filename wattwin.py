@@ -123,7 +123,7 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str):
     output = BytesIO()
     wb.save(output)
     content_excel = base64.b64encode(output.getvalue()).decode()
-    github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Tests_{order_id}.xlsx"
+    github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/TEST.xlsx"
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
     
     # Obtener sha si el archivo existe
