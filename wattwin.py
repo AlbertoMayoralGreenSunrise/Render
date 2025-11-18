@@ -33,6 +33,9 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
     GITHUB_REPO = "AlbertoMayoralGreenSunrise/Render"
     GITHUB_BRANCH = "main"
 
+    github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/TEST_PRUEBA.xlsx"
+    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+
     # --- Llamar a Wattwin ---
     try:
         resp = requests.get(
@@ -60,10 +63,23 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
         "Fecha de venta", "LEG"
     ]
 
-    wb = Workbook()
+    from openpyxl import load_workbook
+    
+    # --- Cargar Excel desde GitHub si existe ---
+    wb = None
+    get_resp = requests.get(github_api_url_excel, headers=headers)
+    if get_resp.status_code == 200:
+        content = base64.b64decode(get_resp.json()["content"])
+        wb = load_workbook(filename=BytesIO(content))
+        log("[LOG] Excel existente cargado desde GitHub")
+    else:
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Productos"
+        ws.append(columns)
+        log("[LOG] Nuevo Excel creado")
+    
     ws = wb.active
-    ws.title = "Productos"
-    ws.append(columns)
 
     # --- Mapeo categoryId → columna ---
     category_to_column = {
@@ -74,7 +90,6 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
         "6328b2a5efa9419a5938b927": 10,  # Batería
         "678e12f76d2390929fd91374": 12  # Cargador VE
     }
-
 
     # --- Crear fila del pedido ---
     pedido_row = [""] * len(columns)
@@ -115,17 +130,16 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
         else:
             log(f"[WARN] categoryId {category_id} no mapeado, producto no añadido")
 
-    # Insertar en fila 4
+     # --- Insertar en la primera fila vacía ---
+    next_row = ws.max_row + 1
     for col_idx, value in enumerate(pedido_row, start=1):
-        ws.cell(row=4, column=col_idx, value=value)
-    log(f"[LOG] Fila agregada al Excel en fila 4: {pedido_row}")
+        ws.cell(row=next_row, column=col_idx, value=value)
+    log(f"[LOG] Fila agregada al Excel en fila {next_row}: {pedido_row}")
 
     # --- Guardar Excel en GitHub (con sobreescritura) ---
     output = BytesIO()
     wb.save(output)
     content_excel = base64.b64encode(output.getvalue()).decode()
-    github_api_url_excel = f"https://api.github.com/repos/{GITHUB_REPO}/contents/TEST_PRUEBA.xlsx"
-    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
     
     # Obtener sha si el archivo existe
     sha = None
@@ -147,6 +161,7 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
         log("[LOG] Excel subido correctamente a GitHub (creado o sobreescrito)")
     except Exception as e:
         log(f"[ERROR] GitHub PUT falló: {e}")
+
 
 
     # --- SUBIR LOGS A GITHUB (con sobreescritura) ---
