@@ -21,7 +21,7 @@ resp = requests.get(
 products_lines = resp.json()
 
 # --- Obtener Excel existente de GitHub ---
-github_api_url = f"https://api.github.com/repos/AlbertoMayoralGreenSunrise/Render/contents/Material_ventas.xlsx"
+github_api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/Material_ventas.xlsx"
 headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 get_resp = requests.get(github_api_url, headers=headers, params={"ref": GITHUB_BRANCH})
@@ -32,7 +32,7 @@ if get_resp.status_code == 200:
     wb = load_workbook(filename=BytesIO(file_content))
     ws = wb.active
 else:
-    # Si no existe, crear nuevo
+    # Si no existe, crear nuevo Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Productos"
@@ -42,55 +42,25 @@ else:
     ws.append(columns)
     sha = None
 
-from openpyxl import Workbook, load_workbook
-from io import BytesIO
-import base64
-import requests
-
-# --- Obtener Excel existente de GitHub ---
-github_api_url = f"https://api.github.com/repos/AlbertoMayoralGreenSunrise/Render/contents/Material_ventas.xlsx"
-headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
-
-get_resp = requests.get(github_api_url, headers=headers, params={"ref": GITHUB_BRANCH})
-if get_resp.status_code == 200:
-    file_data = get_resp.json()
-    sha = file_data["sha"]
-    file_content = base64.b64decode(file_data["content"])
-    wb = load_workbook(filename=BytesIO(file_content))
-    ws = wb.active
-else:
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Productos"
-    columns = ["Numero", "Nombre", "Unidades", "Estructura", "Paneles", "Unidades4",
-               "Optimizador", "Unidades2", "Inversor", "Unidades3", "Baterías",
-               "Cargador VE", "Pajareras", "Fecha de venta", "LEG"]
-    ws.append(columns)
-    sha = None
-
-# --- Mapeo de brand a columna en el Excel ---
-brand_to_column = {
-    "estructura": 3,  # Nombre en columna 3, cantidad en columna 4
-    "panel": 4,
-    "optimizador": 6,
-    "inversor": 8,
-    "batería": 10,
-    "cargador": 11,
-    "pajareras": 12,
+# --- Mapeo de categoryId a columna en el Excel ---
+category_to_column = {
+    "6328b2a5efa9419a5938b927": 10,  # Baterías
+    # Agrega aquí más categoryId si quieres mapear otras categorías
 }
 
 # --- Crear fila para un pedido ---
 pedido_row = [""] * 15
-pedido_row[0] = "Pedido 1"  # Numero
+pedido_row[0] = "Pedido 1"  # Número de pedido
 pedido_row[14] = "LEG"       # Fecha o LEG
 
-# --- Recorrer productos y obtener brand desde Wattwin ---
+# --- Recorrer productos y obtener categoryId desde Wattwin ---
 for line in products_lines:
     product_name = line.get("name", "")
     count = line.get("count", 0)
     product_id = line.get("productId")
 
-    # Llamada a Wattwin para obtener el producto y su brand
+    # Llamada a Wattwin para obtener el producto y su categoryId
+    category_id = ""
     if product_id:
         product_resp = requests.get(
             f"https://public.api.wattwin.com/v1/Products/{product_id}",
@@ -98,26 +68,21 @@ for line in products_lines:
         )
         if product_resp.status_code == 200:
             product_data = product_resp.json()
-            brand = product_data.get("brand", "").lower()
-        else:
-            brand = ""
-    else:
-        brand = ""
+            category_id = product_data.get("categoryId", "")
 
-    # Colocar el producto en la columna correspondiente
-    for key, col_idx in brand_to_column.items():
-        if key in brand:
-            pedido_row[col_idx] = product_name
-            pedido_row[col_idx + 1] = count
-            break
+    # Colocar el producto en la columna correspondiente según categoryId
+    if category_id in category_to_column:
+        col_idx = category_to_column[category_id]
+        pedido_row[col_idx] = product_name
+        pedido_row[col_idx + 1] = count
 
 # --- Agregar fila al Excel ---
 ws.append(pedido_row)
 
-
-# --- Subir actualizado a GitHub ---
-with open(tmp_file.name, "rb") as f:
-    content = base64.b64encode(f.read()).decode()
+# --- Guardar Excel en memoria y subir a GitHub ---
+output = BytesIO()
+wb.save(output)
+content = base64.b64encode(output.getvalue()).decode()
 
 data = {
     "message": f"Actualizar presupuesto {ORDER_ID}",
@@ -125,7 +90,7 @@ data = {
     "branch": GITHUB_BRANCH
 }
 if sha:
-    data["sha"] = sha  # importante para reemplazar el archivo existente
+    data["sha"] = sha  # reemplazar archivo existente
 
 put_resp = requests.put(github_api_url, headers=headers, data=json.dumps(data))
 if put_resp.status_code in [200, 201]:
