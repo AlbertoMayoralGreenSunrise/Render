@@ -44,7 +44,7 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
             params={"filter": f'{{"where":{{"orderId":"{order_id}"}}}}'}
         )
         resp.raise_for_status()
-        products_lines = resp.json().get("items", [])
+        products_lines = resp.json()
     except Exception as e:
         products_lines = []
 
