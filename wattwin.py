@@ -86,6 +86,16 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
         "6328b2a5efa9419a5938b92f": 12  # Pajareras
     }
 
+    category_to_units_column = {
+        "6328b2a5efa9419a5938b92d": 4,  # Unidades Estructura
+        "6328b2a5efa9419a5938b91c": 4,  # Unidades Paneles
+        "6790e34a0a5301a6d0b6e7f8": 6,  # Unidades Optimizador
+        "6328b2a5efa9419a5938b921": 8,  # Unidades Inversor
+        "6328b2a5efa9419a5938b927": 10, # Unidades Batería
+        # Cargador VE y Pajareras no tienen columna de unidades, se puede omitir
+    }
+
+
     # --- Crear fila del pedido ---
     pedido_row = [""] * len(columns)
     pedido_row[0] = ref        # Columna "Numero"
@@ -116,17 +126,19 @@ def process_wattwin_order(instance_id: str, nombre: str, fecha: str, ref: str):
             col_idx = category_to_column[category_id]
         
             # --- Caso especial: Pajareras ---
-            if category_id == "6328b2a5efa9419a5938b92f":
+            if category_id == "6328b2a5efa9419a5938b92f":  # Pajareras
                 pedido_row[col_idx] = "Sí"
-                continue
-        
-            # --- Resto de categorías ---
-            if pedido_row[col_idx]:
-                pedido_row[col_idx] += f", {product_name}"
-                pedido_row[col_idx + 1] += f" + {count}"
             else:
-                pedido_row[col_idx] = product_name
-                pedido_row[col_idx + 1] = str(count)
+                units_col_idx = category_to_units_column.get(category_id)
+                if pedido_row[col_idx]:
+                    pedido_row[col_idx] += f", {product_name}"
+                    if units_col_idx:
+                        pedido_row[units_col_idx] += f" + {count}"
+                else:
+                    pedido_row[col_idx] = product_name
+                    if units_col_idx:
+                        pedido_row[units_col_idx] = str(count)
+
 
                 
     # --- Insertar en la primera fila vacía ---
